@@ -101,7 +101,8 @@ namespace Jellyfin.LiveTv.TunerHosts
 
             if (mediaSource.Protocol == MediaProtocol.Http && !mediaSource.RequiresLooping)
             {
-                using var message = new HttpRequestMessage(HttpMethod.Head, mediaSource.Path);
+                // using var message = new HttpRequestMessage(HttpMethod.Head, mediaSource.Path);
+                using var message = new HttpRequestMessage(HttpMethod.Get, mediaSource.Path);
                 using var response = await _httpClientFactory.CreateClient(NamedClient.Default)
                     .SendAsync(message, cancellationToken)
                     .ConfigureAwait(false);
