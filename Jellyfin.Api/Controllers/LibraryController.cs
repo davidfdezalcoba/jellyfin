@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -639,7 +640,7 @@ public class LibraryController : BaseJellyfinApiController
     [Authorize(Policy = Policies.Download)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesFile("video/*", "audio/*")]
+    [ProducesFile("video/*", "audio/*", "application/zip")]
     public async Task<ActionResult> GetDownload([FromRoute, Required] Guid itemId)
     {
         var userId = User.GetUserId();
@@ -674,8 +675,22 @@ public class LibraryController : BaseJellyfinApiController
 
         // Quotes are valid in linux. They'll possibly cause issues here.
         var filename = Path.GetFileName(item.Path)?.Replace("\"", string.Empty, StringComparison.Ordinal);
+        var path = Path.GetDirectoryName(item.Path)?.Replace("\"", string.Empty, StringComparison.Ordinal);
 
-        return PhysicalFile(item.Path, MimeTypes.GetMimeType(item.Path), filename, true);
+        using (var memoryStream = new MemoryStream())
+        {
+            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+            {
+                foreach (string file in Directory.EnumerateFiles(path))
+                {
+                    archive.CreateEntryFromFile(file, file);
+                }
+            }
+
+            return File(memoryStream.ToArray(), "application/zip", filename);
+        }
+
+        // return PhysicalFile(item.Path, MimeTypes.GetMimeType(item.Path), filename, true);
     }
 
     /// <summary>
